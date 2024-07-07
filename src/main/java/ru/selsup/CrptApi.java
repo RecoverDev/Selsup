@@ -29,7 +29,9 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 public class CrptApi {
     private ManagerPool<String> pool;
-    private static String strURL = "https://ismp.crpt.ru/api/v3/lk/documents/create";
+
+
+    private String strURL = "https://ismp.crpt.ru/api/v3/lk/documents/create";
 
     /**
      * класс описывает задание
@@ -54,10 +56,7 @@ public class CrptApi {
 
                 httpPost.setHeader("Content-Type", "application/json");
 
-                JsonSerialization<Document> jsonSerialization = new JsonSerialization<>();
-                String documentJson = jsonSerialization.serialization(document);
-
-                String requestBody = String.format("{ \"product_document\": \"%s\", \"document_format\": \"MANUAL\", \"type\": \"LP_INTRODUCE_GOODS\", \"signature\": \"%s\" }", documentJson, signature);
+                String requestBody = bodyJson(document,signature);
                 StringEntity entity = new StringEntity(requestBody);
                 httpPost.setEntity(entity);
 
@@ -72,6 +71,25 @@ public class CrptApi {
 
             return result;
 
+        }
+
+        /**
+         * формирование тела запроса
+         * @param document - передаваемый документ
+         * @param signature - подпись
+         * @return JSON 
+         */
+        private String bodyJson(Document document, String signature) {
+            String result;
+
+            Body body = new Body();
+            body.setProduct_document(document);
+            body.setSignature(signature);
+
+            JsonSerialization<Body> jsonSerialization = new JsonSerialization<>();
+            result = jsonSerialization.serialization(body);
+
+            return result;
         }
 
         @Override
@@ -161,7 +179,7 @@ public class CrptApi {
         private Description description;
         private String doc_id;
         private String doc_status;
-        private String doc_type;
+        private type_enum doc_type;
         private boolean importRequest;
         private String owner_inn;
         private String participant_inn;
@@ -189,6 +207,26 @@ public class CrptApi {
         private String uitu_code;
     }
 
+    @Data
+    public class Body {
+        private Document product_document;
+        private Document_format document_format = Document_format.MANUAL;
+        private type_enum type = type_enum.LP_INTRODUCE_GOODS;
+        private String signature;
+    }
+
+    public enum Document_format {
+        MANUAL, //формат json
+        XML, //формат xml
+        CSV  //формат csv
+    }
+
+    public enum type_enum {
+        LP_INTRODUCE_GOODS, //Ввод в оборот. Производство РФ. JSON
+        LP_INTRODUCE_GOODS_CSV, //Ввод в оборот. Производство РФ. CSV
+        LP_INTRODUCE_GOODS_XML //Ввод в оборот. Производство РФ. XML
+    }
+    
     /**
      * Работа с JSON
      */
@@ -231,8 +269,21 @@ public class CrptApi {
      * @param timeUnit - единица измерения времени
      * @param requestLimit - максимальное количество потоков
      */
-    public CrptApi(TimeUnit timeUnit, int requestLimit) {
+    public CrptApi(TimeUnit timeUnit, int requestLimit, String url) {
         pool = new ManagerPool<>(timeUnit, requestLimit);
+        this.strURL = url;
+    }
+
+    public Document getDocument() {
+        return new Document();
+    }
+
+    public Product getProduct() {
+        return new Product();
+    }
+
+    public Description getDescription() {
+        return new Description();
     }
 
     public void startTask(Document document,String signamture) {

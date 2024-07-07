@@ -1,45 +1,75 @@
 package ru.selsup;
 
 import java.util.List;
+import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
-
-import ru.selsup.dev.ConsoleVisitorResult;
-import ru.selsup.dev.Description;
-import ru.selsup.dev.Document;
-import ru.selsup.dev.ManagerPool;
-import ru.selsup.dev.Product;
-import ru.selsup.dev.Request;
 
 public class Main {
     public static void main(String[] args) {
 
-        Product prod1 = new Product("sertificate1", "2024-01-01", "111", "1234567890", "212121", "2024-01-01", "32", "12", "22");
-        Product prod2 = new Product("sertificate2", "2024-01-02", "222", "1234567890", "121212", "2024-01-02", "23", "33", "44");
-        Document document = new Document(new Description("12121212"), 
-                                        "1", 
-                                        "good",
-                                        "LP_INTRODUCE_GOODS", 
-                                        true, 
-                                        "123456", 
-                                        "222", 
-                                        "333", 
-                                        "2024-01-01", 
-                                        "54321", 
-                                        List.of(prod1,prod2), 
-                                        "2024-01-01",
-                                        "1111");
 
         String signature = "FFFFFFFFFFFFFFFFF";
         String url = "https://ismp.crpt.ru/api/v3/lk/documents/create";
 
-        ManagerPool<String> managerPool = new ManagerPool<>(TimeUnit.SECONDS, 10);
+        CrptApi crptApi = new CrptApi(TimeUnit.SECONDS, 100, url);
 
-        for(int i = 1; i < 100; i++) {
-            managerPool.addTask(new Request(url, document, signature));
+
+        for (int i = 0; i < 200; i++) {
+            crptApi.startTask(createDocument(crptApi), signature);
         }
 
-        managerPool.giveResult(new ConsoleVisitorResult());
-        managerPool.close();
+        crptApi.getResult();
 
+    }
+
+    private static CrptApi.Document createDocument(CrptApi crptApi) {
+
+        CrptApi.Document document = crptApi.getDocument();
+
+        document.setDescription(createDescription(crptApi));
+        document.setDoc_id("1");
+        document.setDoc_status("good");
+        document.setDoc_type(CrptApi.type_enum.LP_INTRODUCE_GOODS);
+        document.setImportRequest(true);
+        document.setOwner_inn("123456");
+        document.setParticipant_inn("222");
+        document.setProducer_inn("333");
+        document.setProduction_date("2024-01-01");
+        document.setProduction_type("54321");
+        document.setReg_date("2024-01-01");
+        document.setReg_number("111");
+
+        List<CrptApi.Product> products =  new ArrayList<CrptApi.Product>();
+        for (int i = 0; i < 3; i++) {
+            products.add(createProduct(crptApi));
+        }
+        document.setProducts(products);
+
+        return document;
+    }
+    
+    private static CrptApi.Product createProduct(CrptApi crptApi) {
+
+        CrptApi.Product product = crptApi.getProduct();
+        product.setCertificate_document("sertificatte1");
+        product.setCertificate_document_date("2024-01-01");
+        product.setCertificate_document_number("111");
+        product.setOwner_inn("1234567890");
+        product.setProducer_inn("212121");
+        product.setProduction_date("2024-01-01");
+        product.setTnved_code("32");
+        product.setUit_code("12");
+        product.setUitu_code("22");
+
+
+        return product;
+    }
+
+    private static CrptApi.Description createDescription(CrptApi crptApi) {
+        CrptApi.Description description = crptApi.getDescription();
+
+        description.setParticipantInn("12121212");
+
+        return description;
     }
 }
